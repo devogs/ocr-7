@@ -1,5 +1,3 @@
-# bruteforce.py
-
 import csv
 import time
 
@@ -43,8 +41,8 @@ def load_actions_from_csv(file_path: str) -> list[dict[str, float]]:
     return actions
 
 
-def brute_force_investment(actions: list[dict[str, float]], budget: int = 500) -> tuple[list[str], int, float]:
-    """Find the best combination of actions using a brute-force approach.
+def optimized_investment(actions: list[dict[str, float]], budget: int = 500) -> tuple[list[str], int, float]:
+    """Find the best combination of actions using dynamic programming (1D DP).
 
     Args:
         actions (list[dict[str, float]]): List of actions with name, cost, and profit.
@@ -53,41 +51,38 @@ def brute_force_investment(actions: list[dict[str, float]], budget: int = 500) -
     Returns:
         tuple[list[str], int, float]: Selected action names, total cost, total profit.
     """
-    n = len(actions)
-    best_profit = 0
-    best_combination = []
-    best_cost = 0
+    # Initialize DP array and tracking for included actions
+    dp = [0] * (budget + 1)
+    included = [[] for _ in range(budget + 1)]
 
-    # Try all 2^n combinations
-    for i in range(2**n):
-        current_combination = []
-        current_cost = 0
-        current_profit = 0
+    # Process each action
+    for action in actions:
+        cost = action["cost"]
+        profit = action["profit"]
+        name = action["name"]
+        # Update DP array from right to left
+        for w in range(budget, cost - 1, -1):
+            profit_with = dp[w - cost] + profit
+            if profit_with > dp[w]:
+                dp[w] = profit_with
+                included[w] = included[w - cost] + [name]
 
-        # Check each bit to decide which actions to include
-        for j in range(n):
-            if i & (1 << j):
-                current_combination.append(actions[j]["name"])
-                current_cost += actions[j]["cost"]
-                current_profit += actions[j]["profit"]
+    # Get the result for the full budget
+    selected_names = included[budget]
+    total_cost = sum(a["cost"] for a in actions if a["name"] in selected_names)
+    total_profit = dp[budget]
 
-        # Update the best combination if within budget and better profit
-        if current_cost <= budget and current_profit > best_profit:
-            best_profit = current_profit
-            best_combination = current_combination
-            best_cost = current_cost
-
-    return best_combination, best_cost, best_profit
+    return selected_names, total_cost, total_profit
 
 
 def main():
-    """Run the brute-force algorithm and display the results."""
+    """Run the dynamic programming algorithm and display the results."""
     file_path = "data/Liste+d'actions+-+P7+Python+-+Feuille+1.csv"
     actions = load_actions_from_csv(file_path)
 
-    print("Running brute-force algorithm...")
+    print("Running dynamic programming algorithm...")
     start_time = time.time()
-    selected, total_cost, total_profit = brute_force_investment(actions)
+    selected, total_cost, total_profit = optimized_investment(actions)
     duration = time.time() - start_time
 
     print("\nBest combination:")
