@@ -1,5 +1,3 @@
-# bruteforce.py
-
 import csv
 import time
 
